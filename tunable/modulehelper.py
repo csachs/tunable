@@ -12,12 +12,17 @@ class ModuleHelper(object):
 
     Exception = Exception
     Warning = Warning
+    Ignore = 1
 
     error_mode = Exception
 
-    prefix = ""
+    prefixes = [""]
 
     modules = {}
+
+    @classmethod
+    def add_prefix(cls, prefix):
+        cls.prefixes.append(prefix)
 
 
     @classmethod
@@ -27,19 +32,23 @@ class ModuleHelper(object):
 
         module = None
 
-        try:
-            module = importlib.import_module("%s%s" % (cls.prefix, module_str,))
-        except ImportError:
+        names = ["%s%s" % (prefix, module_str,) for prefix in reversed(cls.prefixes)]
+
+        for name in names:
             try:
-                module = importlib.import_module(module_str)
+                module = importlib.import_module(name)
+                break
             except ImportError:
-                if cls.error_mode == Exception:
-                    raise
-                elif cls.error_mode == Warning:
-                    warnings.warn("Attempted to load \"%s%s\" or \"%s\", but could not find either." % (cls.prefix, module_str, module_str,), ImportWarning)
-                else:
-                    # funny error_mode, huh?
-                    raise
+                pass
+
+        if module is None:
+            error_msg = "Attempted to load any of %r, but could not load any module." % (names,)
+            if cls.error_mode == Exception:
+                raise ImportError(error_msg)
+            elif cls.error_mode == Warning:
+                warnings.warn(error_msg, ImportWarning)
+            else:
+                raise RuntimeError('Invalid error mode.')
 
         cls.modules[module_str] = module
 
@@ -56,7 +65,7 @@ class ModuleHelper(object):
         parser._actions.clear()
         parser._option_string_actions.clear()
 
-        parser.add_argument(parser.prefix_chars[0:1] + short, 2*parser.prefix_chars[0:1] + long, type=str, action=cls.ImportAction)
+        parser.add_argument(parser.prefix_chars[0:1] + short, parser.prefix_chars[0:1]*2 + long, type=str, action=cls.ImportAction)
         parser.parse_known_args(args=args)
 
         for action in actions:

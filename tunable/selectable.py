@@ -3,6 +3,7 @@
 documentation
 """
 
+
 class Selectable(object):
 
     class SelectableChoice(object):
@@ -19,7 +20,7 @@ class Selectable(object):
             if len(default) > 1:
                 raise TypeError("Class %r with multiple defaults! %r" % (cls, default,))
             if len(default) == 0:
-                raise TypeError("Class %r without implementer!" % (default,))
+                raise TypeError("Class %r without implementation!" % (default,))
 
             result = default[0]
             cls.SelectableChoice.overrides[cls] = result
@@ -58,15 +59,15 @@ class SelectableManager(object):
     import argparse
 
     @classmethod
-    def register_argparser(cls, argparser):
+    def register_argparser(cls, parser):
 
         defaults = cls.defaults()
         for class_, choice in sorted(SelectableManager.get().items(), key=lambda _cc: cls.class2name(_cc[0])):
             name = cls.class2name(class_)
-            token = '--' + name
+            token = parser.prefix_chars[0:1]*2 + name
             choices = [cls.class2name(c) for c in sorted(choice, key=lambda _c: cls.class2name(_c))]
             default = defaults[class_] if class_ in defaults else choices[0]
-            argparser.add_argument(token, type=str, choices=choices, default=default, action=cls.ArgparseAction)
+            parser.add_argument(token, type=str, choices=choices, default=default, action=cls.ArgparseAction)
             cls.ArgparseAction.mapping[token] = class_
 
     class ArgparseAction(argparse.Action):

@@ -3,9 +3,6 @@
 documentation
 """
 
-import sys
-sys.path.insert(0, '.')
-
 from tunable import Tunable
 
 
@@ -24,8 +21,17 @@ class QuickOtsu(Tunable(documentation="My little Otsu", default=8, type_=float))
 class QuickOtsuX(Tunable(documentation="My little Otsu", default=8, type_=float)):
     pass
 
+import argparse
+
+
 def main():
-    Tunable.Manager.load({'Otsu': 3})
+
+    p = argparse.ArgumentParser()
+
+    Tunable.Manager.register_argparser(p)
+
+    p.parse_args()
+
     print(Tunable.Manager.get())
 
     print(Otsu.value)
@@ -36,7 +42,7 @@ def main():
 
     print(Otsu.value)
 
-    Tunable.Manager.load({"__main__.Otsu": 17})
+    Tunable.Manager.load({'__main__.Otsu': 17})
 
     print(Otsu.value)
 

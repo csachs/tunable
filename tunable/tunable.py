@@ -20,32 +20,152 @@ class classproperty(object):
 class TunableError(RuntimeError):
     pass
 
+import sys
+import os
+import argparse
+
+try:
+    input = raw_input
+except NameError:
+    pass
+
 class Tunable(object):
 
     class Manager(object):
+        @classmethod
+        def register_argparser(cls, parser, register=None):
+            if register is None:
+                register = {
+                    'show': (None, 'tunables-show'),
+                    'set': ('t', 'tunable'),
+                    'load': (None, 'tunables-load'),
+                    'save': (None, 'tunables-save')
+                }
+
+            p = parser.prefix_chars[0:1]
+            prefix = p * 2
+
+            for k, v in list(register.items()):
+                if v is None:
+                    continue
+
+                v = tuple(vv for vv in v if vv)
+                if len(v) == 2:
+                    vshort, vlong = v
+                    v = (p + vshort, prefix + vlong,)
+                else:
+                    v = (prefix + v[0],)
+
+                register[k] = v
+
+            if register['show']:
+                parser.add_argument(*register['show'], action=cls.ShowTunablesAction)
+            if register['set']:
+                parser.add_argument(*register['set'], type=str, action=cls.SetTunableAction)
+            if register['load']:
+                parser.add_argument(*register['load'], type=str, action=cls.LoadTunablesAction)
+            if register['save']:
+                parser.add_argument(*register['save'], type=str, action=cls.SaveTunablesAction)
+
+
+        class ShowTunablesAction(argparse._StoreTrueAction):
+            quit_after_call = True #False
+
+            def __call__(self, parser, namespace, values, option_string=None):
+                if self.__class__.quit_after_call:
+                    sys.exit(1)
+
+        class LoadTunablesAction(argparse.Action):
+            def __call__(self, parser, namespace, values, option_string=None):
+                pass
+
+        class SaveTunablesAction(argparse.Action):
+            quit_after_call = True #False
+            prompt_overwrite = True #False
+
+            def finish(self):
+                if self.__class__.quit_after_call:
+                    sys.exit(1)
+
+            def __call__(self, parser, namespace, values, option_string=None):
+                file_name = os.path.abspath(values)
+
+                ext = os.path.splitext(file_name)
+
+                ext = ext[1][1:].lower()
+                print(file_name, os.path.exists(file_name))
+                if os.path.exists(file_name):
+                    if self.__class__.prompt_overwrite:
+                        while True:
+                            print("File \"%s\" already exists. Overwrite? [y/n]" % (file_name))
+                            result = input().lower()
+                            if result in ['y', 'n']:
+                                break
+
+                        if result != 'y':
+                            self.finish()
+                    else:
+                        self.finish()
+
+                print("Saving tunables to \"%s\" ..." % (file_name))
+
+                if ext == 'json':
+                    import json
+                    with open(file_name, 'w+') as f:
+                        json.dump(
+                            Tunable.Manager.get_representation(),
+                            f,
+                            sort_keys=True, indent=4, separators=(',', ': '))
+
+                elif ext == 'yaml':
+                    pass
+                elif ext == 'xml':
+                    pass
+
+                self.finish()
+
+        class SetTunableAction(argparse.Action):
+            def __call__(self, parser, namespace, values, option_string=None):
+                pieces = values.split('=')
+
+                k = pieces[0]
+                remainder = '='.join(pieces[1:])
+
+                Tunable.Manager.set(k, remainder)
 
         @classmethod
         def load(cls, tunables):
-            existing = cls.get_multi_dict()
-
-            setted = set()
+            cls.init()
 
             for key, value in tunables.items():
-                if key not in existing:
-                    raise TunableError("Tunable \"%s\" does not exist." % (key,))
+                cls.set(key, value)
 
-                class_ = existing[key]
+        @classmethod
+        def set(cls, key, value):
+            existing = cls.get_multi_dict()
 
-                class_.set(value)
+            if key not in existing:
+                raise TunableError("Tunable \"%s\" does not exist." % (key,))
 
-                setted.add(class_)
+            class_ = existing[key]
 
-            for class_ in (set(existing.values()) - setted):
+            class_.set(value)
+
+        @classmethod
+        def init(cls):
+            for class_ in cls.get_multi_dict().values():
                 class_.reset()
+
+        @classmethod
+        def get_representation(cls):
+            return {k: v.value for k, v in cls.get_semilong_dict().items()}
+
+
 
         @classmethod
         def get_classes(cls):
             collection = set()
+
             def descent(p):
                 sub = p.__subclasses__()
                 if len(sub) == 0:
@@ -66,11 +186,24 @@ class Tunable(object):
         def get_long_dict(cls):
             return {class_.__module__ + '.' + class_.__name__: class_ for class_ in cls.get_classes()}
 
+        @staticmethod
+        def _strip_main(kv):
+            return {(k[len('__main__.'):] if '__main__.' in k else k): v for k, v in kv.items()}
+
+        @classmethod
+        def get_semilong_dict(cls):
+            return cls._strip_main(cls.get_long_dict())
+
         @classmethod
         def get_multi_dict(cls):
             merged = {}
-            merged.update(cls.get_long_dict())
+            long = cls.get_long_dict()
+            merged.update(long)
+            merged.update(cls._strip_main(long))
             merged.update(cls.get_short_dict())
+
+
+
             return merged
 
         @classmethod
@@ -98,7 +231,6 @@ class Tunable(object):
 
     @classmethod
     def reset(cls):
-        print(cls)
         return cls.set(cls.default)
 
     @classmethod

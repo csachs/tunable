@@ -3,6 +3,4 @@
 documentation
 """
 
-from .tunable import *
-from .selectable import *
-from .modulehelper import *
+from .tunableselectable import *

@@ -8,7 +8,7 @@ from setuptools import setup
 
 setup(
     name='tunable',
-    version='0.0.1',
+    version='0.0.1.dev1',
     description='tunable manager',
     long_description='A little library allowing to set parameters.',
     author='Christian C. Sachs',
@@ -17,7 +17,6 @@ setup(
     packages=[
         'tunable'
     ],
-    #requires=['numpy', 'scipy', 'matplotlib'],
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',

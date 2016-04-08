@@ -3,19 +3,15 @@
 documentation
 """
 
-import sys
-sys.path.insert(0, '.')
-
 import argparse
-from tunable import Selectable, SelectableManager, ModuleHelper
+from tunable import  SelectableManager, ModuleHelper
 from selectable_hasher import *
 
 def main():
 
     argparser = argparse.ArgumentParser(description="ABC")
 
-    ModuleHelper.error_mode = Warning
-    ModuleHelper.prefix = "selectable_"
+    ModuleHelper.add_prefix("selectable_")
 
     ModuleHelper.register_and_preparse(argparser)
 
