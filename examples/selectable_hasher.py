@@ -1,6 +1,7 @@
 import hashlib
 from tunable import Selectable
 
+
 class Hasher(Selectable):
     def hash(self, s):
         raise RuntimeError('Pure virtual function call')

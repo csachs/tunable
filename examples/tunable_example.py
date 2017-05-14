@@ -3,6 +3,7 @@
 documentation
 """
 
+import argparse
 from tunable import Tunable
 
 
@@ -11,7 +12,7 @@ class SomeTunableValue(Tunable):
     default = "1.0"
     type_ = float
 
-    #range = range(0, 1)
+    # range = range(0, 1)
 
 
 class SomeOtherTunableValue(Tunable(documentation="My little value", default=8, type_=float)):
@@ -20,8 +21,6 @@ class SomeOtherTunableValue(Tunable(documentation="My little value", default=8, 
 
 class YetAnotherTunableValue(Tunable(documentation="My little other value", default=8, type_=float)):
     pass
-
-import argparse
 
 
 def main():
@@ -35,7 +34,6 @@ def main():
     print(Tunable.Manager.get())
 
     print(SomeTunableValue.value)
-
 
     SomeTunableValue.set(14.0)
 

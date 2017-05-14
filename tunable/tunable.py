@@ -3,6 +3,17 @@
 documentation
 """
 
+import sys
+import os
+import argparse
+
+try:
+    input = raw_input
+except NameError:
+    pass
+
+
+# noinspection PyPep8Naming
 class classproperty(object):
     __slots__ = ('fget', '__doc__', )
 
@@ -17,17 +28,10 @@ class classproperty(object):
     def __get__(self, obj, cls):
         return self.fget(cls)
 
+
 class TunableError(RuntimeError):
     pass
 
-import sys
-import os
-import argparse
-
-try:
-    input = raw_input
-except NameError:
-    pass
 
 class Tunable(object):
 
@@ -67,11 +71,15 @@ class Tunable(object):
             if register['save']:
                 parser.add_argument(*register['save'], type=str, action=cls.SaveTunablesAction)
 
-
         class ShowTunablesAction(argparse._StoreTrueAction):
-            quit_after_call = True #False
+            quit_after_call = True  # False
 
             def __call__(self, parser, namespace, values, option_string=None):
+                for k, v in sorted(Tunable.Manager.get_semilong_dict().items()):
+                    print("# %s" % (v.documentation,))
+                    print("%s = %s" % (k, str(v.value),))
+                    print()
+
                 if self.__class__.quit_after_call:
                     sys.exit(1)
 
@@ -80,8 +88,8 @@ class Tunable(object):
                 pass
 
         class SaveTunablesAction(argparse.Action):
-            quit_after_call = True #False
-            prompt_overwrite = True #False
+            quit_after_call = True  # False
+            prompt_overwrite = True  # False
 
             def finish(self):
                 if self.__class__.quit_after_call:
@@ -97,7 +105,7 @@ class Tunable(object):
                 if os.path.exists(file_name):
                     if self.__class__.prompt_overwrite:
                         while True:
-                            print("File \"%s\" already exists. Overwrite? [y/n]" % (file_name))
+                            print("File \"%s\" already exists. Overwrite? [y/n]" % (file_name,))
                             result = input().lower()
                             if result in ['y', 'n']:
                                 break
@@ -107,7 +115,7 @@ class Tunable(object):
                     else:
                         self.finish()
 
-                print("Saving tunables to \"%s\" ..." % (file_name))
+                print("Saving tunables to \"%s\" ..." % (file_name,))
 
                 if ext == 'json':
                     import json
@@ -160,8 +168,6 @@ class Tunable(object):
         def get_representation(cls):
             return {k: v.value for k, v in cls.get_semilong_dict().items()}
 
-
-
         @classmethod
         def get_classes(cls):
             collection = set()
@@ -202,8 +208,6 @@ class Tunable(object):
             merged.update(cls._strip_main(long))
             merged.update(cls.get_short_dict())
 
-
-
             return merged
 
         @classmethod
@@ -216,6 +220,7 @@ class Tunable(object):
 
     default = None
 
+    convert_type = True
     range = None
     type_ = None
 
@@ -225,6 +230,7 @@ class Tunable(object):
     def documentation(cls):
         return cls.__doc__
 
+    # noinspection PyUnusedLocal
     @classmethod
     def test(cls, value):
         return True
@@ -238,6 +244,9 @@ class Tunable(object):
 
         if value is None:
             raise TunableError('Tunable has no value', cls)
+
+        if cls.type_ is None and cls.convert_type:
+            cls.type_ = type(cls.default)
 
         if cls.type_ is not None and type(value) != cls.type_:
             try:

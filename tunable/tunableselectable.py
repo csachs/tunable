@@ -7,6 +7,7 @@ from .modulehelper import ModuleHelper
 from .selectable import Selectable, SelectableManager
 from .tunable import Tunable, TunableError
 
+
 class TunableSelectable(object):
 
     @classmethod

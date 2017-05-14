@@ -28,7 +28,6 @@ class Selectable(object):
         return object.__new__(result)
 
 
-
 class SelectableManager(object):
     Selectable = Selectable
 
@@ -70,6 +69,7 @@ class SelectableManager(object):
             parser.add_argument(token, type=str, choices=choices, default=default, action=cls.ArgparseAction)
             cls.ArgparseAction.mapping[token] = class_
 
+    # noinspection PyClassHasNoInit
     class ArgparseAction(argparse.Action):
         mapping = {}
 
