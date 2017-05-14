@@ -6,7 +6,7 @@ documentation
 from tunable import Tunable
 
 
-class Otsu(Tunable):
+class SomeTunableValue(Tunable):
     """An important tunable to modify bla bla foo."""
     default = "1.0"
     type_ = float
@@ -14,11 +14,11 @@ class Otsu(Tunable):
     #range = range(0, 1)
 
 
-class QuickOtsu(Tunable(documentation="My little Otsu", default=8, type_=float)):
+class SomeOtherTunableValue(Tunable(documentation="My little value", default=8, type_=float)):
     pass
 
 
-class QuickOtsuX(Tunable(documentation="My little Otsu", default=8, type_=float)):
+class YetAnotherTunableValue(Tunable(documentation="My little other value", default=8, type_=float)):
     pass
 
 import argparse
@@ -34,19 +34,18 @@ def main():
 
     print(Tunable.Manager.get())
 
-    print(Otsu.value)
+    print(SomeTunableValue.value)
 
 
+    SomeTunableValue.set(14.0)
 
-    Otsu.set(14.0)
+    print(SomeTunableValue.value)
 
-    print(Otsu.value)
+    Tunable.Manager.load({'__main__.SomeTunableValue': 17})
 
-    Tunable.Manager.load({'__main__.Otsu': 17})
+    print(SomeTunableValue.value)
 
-    print(Otsu.value)
-
-    print(QuickOtsu.value)
+    print(SomeOtherTunableValue.value)
 
 if __name__ == '__main__':
     main()
