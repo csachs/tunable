@@ -75,9 +75,14 @@ class Tunable(object):
             quit_after_call = True  # False
 
             def __call__(self, parser, namespace, values, option_string=None):
+                print("### Tunables ###")
+                print()
+
                 for k, v in sorted(Tunable.Manager.get_semilong_dict().items()):
+                    _ = v.value
                     print("# %s" % (v.documentation,))
-                    print("%s = %s" % (k, str(v.value),))
+                    print("# type: %s" % (v.type_.__name__,))
+                    print("%s=%s" % (k, str(v.value),))
                     print()
 
                 if self.__class__.quit_after_call:
@@ -228,7 +233,7 @@ class Tunable(object):
 
     @classproperty
     def documentation(cls):
-        return cls.__doc__
+        return cls.__doc__.strip()
 
     # noinspection PyUnusedLocal
     @classmethod
