@@ -9,6 +9,8 @@ import argparse
 import json
 import hashlib
 
+import xml.etree.ElementTree as ET
+
 try:
     import pyasn1
     from .tunable_schema import (Tunable as SchemaTunable, TunableSequenceType as SchemaTunableSequenceType,
@@ -165,7 +167,25 @@ class TunableManager(object):
                     cls.load(yaml.load(f))
 
             elif ext == 'xml':
-                raise RuntimeError('XML input currently not supported.')
+                tree = ET.parse(file_name)
+                root = tree.getroot()
+
+                assert int(next(root.iter('version')).text) == ASN1_SCHEMA_VERSION
+
+                tl = next(root.iter('tunables'))
+
+                for tunable in tl.iter('Tunable'):
+                    name = next(tunable.iter('name')).text
+                    value = next(iter(next(tunable.iter('value'))))
+
+                    if value.tag in {'intValue', 'floatValue', 'stringValue'}:
+                        cls.set(name, value.text)
+                    elif value.tag == 'boolValue':
+                        inner = next(iter(value)).tag
+                        assert inner in {'true', 'false'}
+                        cls.set(name, inner == 'true')
+                    elif value.tag == 'bytesValue':
+                        cls.set(name, bytes.fromhex(value.text))
 
             elif ext == 'der':
                 if not pyasn1:
@@ -178,7 +198,7 @@ class TunableManager(object):
                 assert result['version'] == ASN1_SCHEMA_VERSION
 
                 for tunable in result['tunables']:
-                    TunableManager.set(
+                    cls.set(
                         tunable['name'],
                         next(iter(native_encoder(tunable['value']).values()))
                     )
@@ -236,7 +256,43 @@ class TunableManager(object):
                         default_flow_style=False)
 
             elif ext == 'xml':
-                raise RuntimeError('XML output currently not supported.')
+                tl = ET.Element('TunablesList')
+                tree = ET.ElementTree(tl)
+                version = ET.SubElement(tl, 'version')
+                version.text = str(ASN1_SCHEMA_VERSION)
+
+                t = ET.SubElement(tl, 'tunables')
+
+                for k, v in sorted(cls.get_semilong_dict().items()):
+                    tunable = ET.SubElement(t, 'Tunable')
+                    name = ET.SubElement(tunable, 'name')
+                    name.text = k
+
+                    value = ET.SubElement(tunable, 'value')
+
+                    the_value = v.value
+                    tag_name = {
+                        bool: 'boolValue',
+                        bytes: 'bytesValue',
+                        str: 'stringValue',
+                        int: 'intValue',
+                        float: 'floatValue'
+                    }[type(the_value)]
+
+                    inner = ET.SubElement(value, tag_name)
+
+                    if tag_name in {'intValue', 'floatValue', 'stringValue'}:
+                        inner.text = str(the_value)
+                    elif tag_name == 'boolValue':
+                        if the_value:
+                            ET.SubElement(inner, 'true')
+                        else:
+                            ET.SubElement(inner, 'false')
+                    elif tag_name == 'bytesValue':
+                        inner.text = ''.join('%02x' % b for b in the_value)
+
+                with open(file_name, 'wb+') as f:
+                    tree.write(f, encoding='utf-8', xml_declaration=True)
 
             elif ext == 'der':
                 if not pyasn1:

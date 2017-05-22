@@ -86,8 +86,7 @@ Changing a tunable via command line:
 21.0
 ```
 
-Tunables can be saved/loaded from files, currently supported are key=value style config files, JSON, DER and YAML.
-XML is planned.
+Tunables can be saved/loaded from files, currently supported are key=value style config files, JSON, DER, YAML or XML.
 
 To help reproducibility, a hash of all tunables currently set can be generated:
 ```python
