@@ -4,7 +4,7 @@ documentation
 """
 
 import argparse
-from tunable import Tunable
+from tunable import Tunable, TunableManager
 
 
 class SomeTunableValue(Tunable):
@@ -27,11 +27,13 @@ def main():
 
     p = argparse.ArgumentParser()
 
-    Tunable.Manager.register_argparser(p)
+    TunableManager.register_argparser(p)
 
     p.parse_args()
 
-    print(Tunable.Manager.get())
+    print(TunableManager.get())
+
+    print("Hash: %s" % (TunableManager.get_hash()))
 
     print(SomeTunableValue.value)
 
@@ -39,7 +41,7 @@ def main():
 
     print(SomeTunableValue.value)
 
-    Tunable.Manager.load({'__main__.SomeTunableValue': 17})
+    TunableManager.load({'__main__.SomeTunableValue': 17})
 
     print(SomeTunableValue.value)
 

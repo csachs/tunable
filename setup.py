@@ -3,7 +3,7 @@
 documentation
 """
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 setup(
@@ -14,9 +14,8 @@ setup(
     author='Christian C. Sachs',
     author_email='sachs.christian@gmail.com',
     url='https://github.com/csachs/tunable',
-    packages=[
-        'tunable'
-    ],
+    install_requires=['pyasn1', 'pyyaml'],
+    packages=find_packages(),
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',

@@ -1,0 +1,28 @@
+-- Schema Definition Version 1
+
+TunableSchema DEFINITIONS EXPLICIT TAGS ::=
+BEGIN
+    TunableType ::= CHOICE {
+        boolValue BOOLEAN,
+        intValue INTEGER,
+        floatValue REAL,
+        stringValue UTF8String,
+        bytesValue OCTET STRING,
+        ...
+    }
+
+    Tunable ::= SEQUENCE {
+        name UTF8String,
+        value TunableType
+    }
+
+    TunableSequenceType ::= SEQUENCE OF Tunable
+
+    Version ::= INTEGER
+
+    TunablesList ::= SEQUENCE {
+        version Version,
+        tunables TunableSequenceType
+    }
+
+END
