@@ -323,6 +323,7 @@ class TunableManager(object):
         ]
 
         for k, v in sorted(cls.get_semilong_dict().items()):
+            v.value
             result.append("# %s" % (v.documentation,))
             result.append("# type: %s" % (v.type_.__name__,))
             result.append("%s=%s" % (k, str(v.value),))
