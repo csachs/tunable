@@ -16,6 +16,7 @@ setup(
     url='https://github.com/csachs/tunable',
     install_requires=['pyasn1', 'pyyaml'],
     packages=find_packages(),
+    data_files=[('asn1schema', ['tunable/tunable_schema.asn'])],
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',
