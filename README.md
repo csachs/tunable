@@ -86,8 +86,8 @@ Changing a tunable via command line:
 21.0
 ```
 
-Tunables can be saved/loaded from files, currently supported are key=value style config files, JSON and YAML.
-XML and DER are planned.
+Tunables can be saved/loaded from files, currently supported are key=value style config files, JSON, DER and YAML.
+XML is planned.
 
 To help reproducibility, a hash of all tunables currently set can be generated:
 ```python
@@ -100,7 +100,8 @@ Cryptographic hashing is based upon the SHA-512 hash of a canonicalized DER base
 
 ## Stability
 Warning, this library is alpha software, whose interface is subject to change without notice!
-Especially, no guarantees are made that the hashing is not going to change, which might lead to wrongly changed hashes!
+
+No guarantees yet on binary formats, hash stability or such!
 
 ## License
 

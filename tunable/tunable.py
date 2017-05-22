@@ -14,6 +14,8 @@ try:
     from .tunable_schema import (Tunable as SchemaTunable, TunableSequenceType as SchemaTunableSequenceType,
                                  TunablesList as SchemaTunablesList, TunableType as SchemaTunableType)
     from pyasn1.codec.der.encoder import encode as der_encode
+    from pyasn1.codec.der.decoder import decode as der_decoder
+    from pyasn1.codec.native.encoder import encode as native_encoder
 except ImportError:
     pyasn1 = None
 
@@ -168,7 +170,18 @@ class TunableManager(object):
             elif ext == 'der':
                 if not pyasn1:
                     raise RuntimeError('pyasn1 library missing!')
-                raise RuntimeError('DER input currently not supported.')
+                with open(file_name, 'rb') as f:
+                    data = f.read()
+
+                result, _ = der_decoder(data, asn1Spec=SchemaTunablesList())
+
+                assert result['version'] == ASN1_SCHEMA_VERSION
+
+                for tunable in result['tunables']:
+                    TunableManager.set(
+                        tunable['name'],
+                        next(iter(native_encoder(tunable['value']).values()))
+                    )
 
     class SaveTunablesAction(argparse.Action):
         quit_after_call = True  # False
