@@ -425,7 +425,7 @@ class TunableManager(object):
     @classmethod
     def get_hash(cls):
         serializer = DerSerializer()
-        data = serializer.encode(tunables=cls.get_semilong_dict())
+        data = serializer.encode(tunables=cls.get_semilong_dict(), everything=False)
 
         hasher = hashlib.sha256()
         hasher.update(data)
