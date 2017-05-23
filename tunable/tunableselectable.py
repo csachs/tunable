@@ -5,7 +5,8 @@ documentation
 
 from .modulehelper import ModuleHelper
 from .selectable import Selectable, SelectableManager
-from .tunable import Tunable, TunableManager, TunableError
+from .tunable import Tunable
+from .tunablemanager import TunableManager, TunableError
 
 
 class TunableSelectable(object):

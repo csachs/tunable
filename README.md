@@ -7,7 +7,7 @@ IDE-supported (code completion)
 and prevents running it with "missing defaults" or misspelled keys leading to runtime errors.
 
 Theoretically, all Python types instantiable from strings are supported, it is however discouraged to use anything but
-`bool`/`int`/`float`/`str` for portability reasons.
+`{bool, int, float, str, bytes}` for portability reasons.
 
 There are some more features and concepts, which will hopefully be documented correctly in the future.
 
@@ -93,9 +93,9 @@ To help reproducibility, a hash of all tunables currently set can be generated:
 print(TunableManager.get_hash())
 ```
 ```
-51869058fca8e234f73fd3a0f010140141d22c6ebf132303f759be14e68075d5dce5476e96c7660b1d43e7bc2ac3b78515ca0738ec0fd54f2774a49ace549495
+VERSION:1:SHA256:3aHPIn6bRgA15+dNRPNhltMA1hibYMcs7dnUwqVjg0s=
 ```
-Cryptographic hashing is based upon the SHA-512 hash of a canonicalized DER based serialization of the tunables.
+Cryptographic hashing is based upon the SHA-256 hash of a canonicalized DER based serialization of the tunables.
 
 ## Stability
 Warning, this library is beta software, whose interface is subject to change without notice!
