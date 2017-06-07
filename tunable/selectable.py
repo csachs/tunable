@@ -15,6 +15,9 @@ class Selectable(object):
     class Default(object):
         pass
 
+    class Virtual(object):
+        pass
+
     def __new__(cls):
         if cls in cls.SelectableChoice.overrides:
             result = cls.SelectableChoice.overrides[cls]
@@ -31,18 +34,28 @@ class Selectable(object):
         return object.__new__(result)
 
 
+def get_all_subclasses(what):
+    collector = set()
+
+    def _recurse(w):
+        for cc in w.__subclasses__():
+            collector.add(cc)
+            _recurse(cc)
+
+    _recurse(what)
+    return collector
+
+
 class SelectableManager(object):
     Selectable = Selectable
 
     @classmethod
     def get(cls):
-        return {c: [cc for cc in c.__subclasses__()]
-                for c in cls.Selectable.__subclasses__()}
+        return {c: [cc for cc in get_all_subclasses(c) if not Selectable.Virtual in cc.__subclasses__()] for c in cls.Selectable.__subclasses__()}
 
     @classmethod
     def defaults(cls):
-        return {c: [cc for cc in c.__subclasses__() if issubclass(cc, Selectable.Default)]
-                for c in cls.Selectable.__subclasses__()}
+        return {c: [cc for cc in l if issubclass(cc, Selectable.Default)] for c, l in cls.get().items()}
 
     @classmethod
     def set(cls, selectable, choice):
