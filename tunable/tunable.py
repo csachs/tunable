@@ -4,6 +4,10 @@ documentation
 """
 
 
+class TunableError(RuntimeError):
+    pass
+
+
 # noinspection PyPep8Naming
 class classproperty(object):
     __slots__ = ('fget', '__doc__', )

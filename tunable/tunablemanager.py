@@ -1,4 +1,4 @@
-from .tunable import Tunable
+from .tunable import Tunable, TunableError
 
 import argparse
 import hashlib
@@ -309,9 +309,6 @@ class SetTunableAction(argparse.Action):
         TunableManager.set(k, remainder)
 
 
-class TunableError(RuntimeError):
-    pass
-
 
 class TunableManager(object):
     @classmethod
@@ -389,6 +386,7 @@ class TunableManager(object):
                     descent(p)
 
         descent(Tunable)
+        collection -= {Tunable}
 
         return list(sorted(collection, key=lambda p: (p.__module__, p.__name__,)))
 
