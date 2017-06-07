@@ -3,8 +3,11 @@
 documentation
 """
 
+from .modulehelper import ModuleHelper
+
 
 class Selectable(object):
+    autoload = True
 
     class SelectableChoice(object):
         overrides = {}
@@ -66,8 +69,29 @@ class SelectableManager(object):
             token = parser.prefix_chars[0:1]*2 + name
             choices = [cls.class2name(c) for c in sorted(choice, key=lambda _c: cls.class2name(_c))]
             default = defaults[class_] if class_ in defaults else choices[0]
+
             parser.add_argument(token, type=str, choices=choices, default=default, action=cls.ArgparseAction)
             cls.ArgparseAction.mapping[token] = class_
+            cls.ArgparseAction.mapping[name] = class_
+
+        parser._real_check_value = parser._check_value
+
+        self = parser
+        def _monkey_patch_check_value(action, value):
+            if action.dest in cls.ArgparseAction.mapping:
+                class_ = cls.ArgparseAction.mapping[action.dest]
+                if action.choices and value not in action.choices:
+                    if class_.autoload:
+                        try:
+                            ModuleHelper.load_module(value)
+                        except ImportError:
+                            pass  # this time we're silent
+                    choice = SelectableManager.get()[class_]
+                    action.choices = [cls.class2name(c) for c in sorted(choice, key=lambda _c: cls.class2name(_c))]
+
+            self._real_check_value(action, value)
+
+        parser._check_value = _monkey_patch_check_value
 
     # noinspection PyClassHasNoInit
     class ArgparseAction(argparse.Action):

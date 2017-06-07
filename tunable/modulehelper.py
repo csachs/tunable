@@ -3,9 +3,11 @@
 documentation
 """
 
+import sys
 import argparse
 import importlib
 import warnings
+from itertools import product
 
 
 class ModuleHelper(object):
@@ -29,9 +31,15 @@ class ModuleHelper(object):
         if module_str in cls.modules:
             return
 
+        sys.path.insert(0, '.')
+
         module_ = None
 
-        names = ["%s%s" % (prefix, module_str,) for prefix in reversed(cls.prefixes)]
+        names = [
+            "%s%s" % (prefix, name,)
+            for name, prefix
+            in product([module_str, module_str.lower()], reversed(cls.prefixes))
+        ]
 
         for name in names:
             try:

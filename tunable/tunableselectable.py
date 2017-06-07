@@ -26,4 +26,5 @@ class TunableSelectable(object):
     def setup_and_parse(cls, parser, args=None):
         ModuleHelper.register_and_preparse(parser, args)
         SelectableManager.register_argparser(parser)
+        TunableManager.register_argparser(parser)
 
