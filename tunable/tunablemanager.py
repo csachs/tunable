@@ -23,6 +23,8 @@ try:
 except ImportError:
     yaml = None
 
+from io import StringIO, BytesIO
+
 
 class Serializer(object):
     need_binary = False
@@ -202,8 +204,8 @@ class DerSerializer(Serializer):
 
         return der_encode(tl)
 
-    def serialize(self, fp, **kwargs):
-        fp.write(self.encode(**kwargs))
+    def serialize(self, fp, tunables=None, **kwargs):
+        fp.write(self.encode(tunables=tunables, **kwargs))
 
     def decode(self, data):
         decode_result, _ = der_decode(data, asn1Spec=schema.TunablesList())
@@ -419,6 +421,21 @@ class TunableManager(object):
     @classmethod
     def get(cls):
         return list(cls.get_long_dict().keys())
+
+    @classmethod
+    def get_serialization(cls, extension='conf'):
+        assert extension in SERIALIZERS
+
+        serializer = SERIALIZERS[extension]()
+
+        if serializer.need_binary:
+            buf = BytesIO()
+        else:
+            buf = StringIO()
+
+        serializer.serialize(buf, cls.get_semilong_dict())
+
+        return buf.getvalue()
 
     @classmethod
     def get_hash(cls):
