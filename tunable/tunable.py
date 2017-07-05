@@ -4,6 +4,23 @@ documentation
 """
 
 
+def fancybool(value):
+    if isinstance(value, type('')):
+        value = value.lower()
+        if value == 'true' or value == 'yes' or value == 't' or value == 'y' or value == '1':
+            return True
+        elif value == 'false' or value == 'no' or value == 'f' or value == 'n' or value == '0':
+            return False
+        raise ValueError('Unsupported value %r passed, expected a bool.' % (value,))
+    else:
+        return bool(value)
+
+
+CONVERTERS = {
+    bool: fancybool
+}
+
+
 class TunableError(RuntimeError):
     pass
 
@@ -67,7 +84,10 @@ class Tunable(object):
 
         if cls.type_ is not None and type(value) != cls.type_:
             try:
-                value = cls.type_(value)
+                if cls.type_ in CONVERTERS:
+                    value = CONVERTERS[cls.type_](value)
+                else:
+                    value = cls.type_(value)
             except ValueError as e:
                 raise TunableError(e)
 
