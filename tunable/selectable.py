@@ -22,14 +22,19 @@ class Selectable(object):
         if cls in cls.SelectableChoice.overrides:
             result = cls.SelectableChoice.overrides[cls]
         else:
-            default = [choice for choice in cls.__subclasses__() if issubclass(choice, cls.Default)]
-            if len(default) > 1:
-                raise TypeError("Class %r with multiple defaults! %r" % (cls, default,))
-            if len(default) == 0:
-                raise TypeError("Class %r without implementation!" % (default,))
+            # check if it is directly inherited, or deeper inherited
+            # if it is not-direct, it must still remain valid to instantiate classes
+            if Selectable not in cls.__bases__:
+                result = cls
+            else:
+                default = [choice for choice in cls.__subclasses__() if issubclass(choice, cls.Default)]
+                if len(default) > 1:
+                    raise TypeError("Class %r with multiple defaults! %r" % (cls, default,))
+                if len(default) == 0:
+                    raise TypeError("Class %r without implementation!" % (default,))
 
-            result = default[0]
-            cls.SelectableChoice.overrides[cls] = result
+                result = default[0]
+                cls.SelectableChoice.overrides[cls] = result
 
         return object.__new__(result)
 
