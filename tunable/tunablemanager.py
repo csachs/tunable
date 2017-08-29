@@ -349,8 +349,9 @@ class TunableManager(object):
             parser.add_argument(*register['save'], type=str, action=SaveTunablesAction)
 
     @classmethod
-    def load(cls, tunables):
-        cls.init()
+    def load(cls, tunables, reset=True):
+        if reset:
+            cls.init()
 
         for key, value in tunables.items():
             cls.set(key, value)
