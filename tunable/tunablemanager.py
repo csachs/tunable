@@ -147,6 +147,7 @@ class ConfigSerializer(Serializer):
         ]
 
         for k, v in sorted(tunables.items()):
+            # noinspection PyStatementEffect
             v.value
             result.append("# %s" % (v.documentation,))
             result.append("# type: %s" % (v.type_.__name__,))
@@ -221,6 +222,7 @@ class DerSerializer(Serializer):
 
     def deserialize(self, fp):
         return self.decode(fp.read())
+
 
 SERIALIZERS = {
     'json': JsonSerializer,
@@ -309,7 +311,6 @@ class SetTunableAction(argparse.Action):
         remainder = '='.join(pieces[1:])
 
         TunableManager.set(k, remainder)
-
 
 
 class TunableManager(object):
@@ -445,7 +446,7 @@ class TunableManager(object):
 
         hasher = hashlib.sha256()
         hasher.update(data)
-        hash = b64encode(hasher.digest()).decode()
+        hash_value = b64encode(hasher.digest()).decode()
 
-        return "VERSION:%d:SHA256:%s" % (ASN1_SCHEMA_VERSION, hash)
+        return "VERSION:%d:SHA256:%s" % (ASN1_SCHEMA_VERSION, hash_value)
 

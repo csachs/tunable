@@ -11,6 +11,7 @@ class Selectable(object):
 
     class SelectableChoice(object):
         overrides = {}
+        parameters = {}
 
     class Default(object):
         pass
@@ -18,7 +19,7 @@ class Selectable(object):
     class Virtual(object):
         pass
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if cls in cls.SelectableChoice.overrides:
             result = cls.SelectableChoice.overrides[cls]
         else:
@@ -36,7 +37,14 @@ class Selectable(object):
                 result = default[0]
                 cls.SelectableChoice.overrides[cls] = result
 
-        return object.__new__(result)
+        result = object.__new__(result)
+
+        compound_kwargs = {}
+        compound_kwargs.update(cls.SelectableChoice.parameters)
+        compound_kwargs.update(kwargs)
+
+        result.__init__(*args, **compound_kwargs)
+        return result
 
 
 def get_all_subclasses(what):
@@ -51,12 +59,52 @@ def get_all_subclasses(what):
     return collector
 
 
+def opportunistic_cast(value):
+    if value.lower() == 'true':
+        return True
+
+    if value.lower() == 'false':
+        return False
+
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    try:
+        return float(value)
+    except ValueError:
+        pass
+
+    return str(value)
+
+
+def parse_class_name_with_kwargs(value):
+    the_kwargs = dict()
+    if '(' in value and value[-1] == ')':
+        value, kv = value.split('(')
+        kv = kv[:-1]
+
+        for kv_pair in kv.split(','):
+            k, v = kv_pair.split('=')
+            k, v = k.strip(), v.strip()
+
+            v = opportunistic_cast(v)
+
+            the_kwargs[k] = v
+
+    return value, the_kwargs
+
+
 class SelectableManager(object):
     Selectable = Selectable
 
     @classmethod
     def get(cls):
-        return {c: [cc for cc in get_all_subclasses(c) if not Selectable.Virtual in cc.__subclasses__()] for c in cls.Selectable.__subclasses__()}
+        return {
+            c: [cc for cc in get_all_subclasses(c) if Selectable.Virtual not in cc.__subclasses__()]
+            for c in cls.Selectable.__subclasses__()
+        }
 
     @classmethod
     def defaults(cls):
@@ -71,6 +119,10 @@ class SelectableManager(object):
             possible_choice for possible_choice in cls.get()[selectable]
             if possible_choice == choice or cls.class2name(possible_choice) == choice
         )
+
+    @classmethod
+    def set_default_parameters(cls, selectable, parameters):
+        selectable.SelectableChoice.parameters.update(parameters)
 
     @classmethod
     def class2name(cls, c):
@@ -95,8 +147,11 @@ class SelectableManager(object):
         parser._real_check_value = parser._check_value
 
         self = parser
+
         def _monkey_patch_check_value(action, value):
             if action.dest in cls.ArgparseAction.mapping:
+                value, the_kwargs = parse_class_name_with_kwargs(value)
+
                 class_ = cls.ArgparseAction.mapping[action.dest]
                 if action.choices and value not in action.choices:
                     if class_.autoload:
@@ -117,5 +172,11 @@ class SelectableManager(object):
 
         def __call__(self, parser, namespace, values, option_string=None):
             if option_string in self.__class__.mapping:
+                setattr(namespace, SelectableManager.class2name(self.__class__.mapping[option_string]), values)
+
+                values, the_kwargs = parse_class_name_with_kwargs(values)
+
                 SelectableManager.set(self.__class__.mapping[option_string], values)
 
+                if the_kwargs:
+                    SelectableManager.set_default_parameters(self.__class__.mapping[option_string], the_kwargs)
