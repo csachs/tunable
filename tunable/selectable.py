@@ -19,32 +19,15 @@ class Selectable(object):
     class Virtual(object):
         pass
 
+    class Multiple(object):
+        pass
+
+    @classmethod
+    def SelectableGetMultiple(cls, *args, **kwargs):
+        return SelectableManager.create_selectable(cls, args, kwargs, multiple=True)
+
     def __new__(cls, *args, **kwargs):
-        if cls in cls.SelectableChoice.overrides:
-            result = cls.SelectableChoice.overrides[cls]
-        else:
-            # check if it is directly inherited, or deeper inherited
-            # if it is not-direct, it must still remain valid to instantiate classes
-            if Selectable not in cls.__bases__:
-                result = cls
-            else:
-                default = [choice for choice in cls.__subclasses__() if issubclass(choice, cls.Default)]
-                if len(default) > 1:
-                    raise TypeError("Class %r with multiple defaults! %r" % (cls, default,))
-                if len(default) == 0:
-                    raise TypeError("Class %r without implementation!" % (default,))
-
-                result = default[0]
-                cls.SelectableChoice.overrides[cls] = result
-
-        result = object.__new__(result)
-
-        compound_kwargs = {}
-        compound_kwargs.update(cls.SelectableChoice.parameters)
-        compound_kwargs.update(kwargs)
-
-        result.__init__(*args, **compound_kwargs)
-        return result
+        return SelectableManager.create_selectable(cls, args, kwargs)
 
 
 def get_all_subclasses(what):
@@ -100,6 +83,74 @@ class SelectableManager(object):
     Selectable = Selectable
 
     @classmethod
+    def resolve_selectable(cls, selectable_cls):
+        if selectable_cls in selectable_cls.SelectableChoice.overrides:
+            result = selectable_cls.SelectableChoice.overrides[selectable_cls]
+        else:
+            # check if it is directly inherited, or deeper inherited
+            # if it is not-direct, it must still remain valid to instantiate classes
+            if Selectable not in selectable_cls.__bases__:
+                result = selectable_cls
+            else:
+                default = [choice for choice in selectable_cls.__subclasses__() if issubclass(choice, selectable_cls.Default)]
+                if len(default) > 1:
+                    raise TypeError("Class %r with multiple defaults! %r" % (selectable_cls, default,))
+                if len(default) == 0:
+                    raise TypeError("Class %r without implementation!" % (default,))
+
+                result = default[0]
+                selectable_cls.SelectableChoice.overrides[selectable_cls] = result
+
+        return result
+
+    @classmethod
+    def proxify_init(cls, selectable):
+        if hasattr(selectable, '__real_init__'):
+            return
+
+        selectable.__real_init__ = selectable.__init__
+
+        def _init_proxy(self, *args, **kwargs):
+            if hasattr(self, '__real_init_called'):
+                return
+            else:
+                setattr(self, '__real_init_called', True)
+                selectable.__real_init__(self, *args, **kwargs)
+
+        selectable.__init__ = _init_proxy
+
+    @classmethod
+    def instantiate_selectable(cls, selectable, args, kwargs):
+
+        cls.proxify_init(selectable)
+
+        result = object.__new__(selectable)
+
+        compound_kwargs = {}
+        if selectable in selectable.SelectableChoice.parameters:
+            compound_kwargs.update(selectable.SelectableChoice.parameters[selectable])
+        compound_kwargs.update(kwargs)
+
+        result.__init__(*args, **compound_kwargs)
+
+        return result
+
+    @classmethod
+    def create_selectable(cls, selectable_cls, args, kwargs, multiple=False):
+        result = cls.resolve_selectable(selectable_cls)
+
+        if cls.is_multiple(selectable_cls):
+            if not multiple:
+                if isinstance(result, list):
+                    result = result[0]
+            else:
+                return [
+                    cls.instantiate_selectable(one_selectable, args, kwargs)
+                    for one_selectable in result
+                ]
+        return cls.instantiate_selectable(result, args, kwargs)
+
+    @classmethod
     def get(cls):
         return {
             c: [cc for cc in get_all_subclasses(c) if Selectable.Virtual not in cc.__subclasses__()]
@@ -107,26 +158,58 @@ class SelectableManager(object):
         }
 
     @classmethod
+    def get_choice_for_string(cls, selectable, choice):
+        if isinstance(choice, type):
+            choice = cls.class2name(choice)
+        for class_ in cls.get()[selectable]:
+            if cls.class2name(class_) == choice:
+                return class_
+        raise RuntimeError("Invalid choice passed.")
+
+    @classmethod
     def defaults(cls):
         return {c: [cc for cc in l if issubclass(cc, Selectable.Default)] for c, l in cls.get().items()}
 
     @classmethod
-    def set(cls, selectable, choice):
+    def _pick(cls, selectable, choice):
         if not issubclass(selectable, Selectable):
             raise TypeError("Wrong arguments passed.")
 
-        selectable.SelectableChoice.overrides[selectable] = next(
+        return next(
             possible_choice for possible_choice in cls.get()[selectable]
             if possible_choice == choice or cls.class2name(possible_choice) == choice
         )
 
     @classmethod
+    def set(cls, selectable, choice):
+        selectable.SelectableChoice.overrides[selectable] = cls._pick(selectable, choice)
+
+    @classmethod
+    def add(cls, selectable, choice):
+        pick = cls._pick(selectable, choice)
+        overrides = selectable.SelectableChoice.overrides
+
+        if selectable not in overrides:
+            overrides[selectable] = []
+
+        if selectable in overrides and not isinstance(overrides[selectable], list):
+            overrides[selectable] = [overrides[selectable]]
+
+        overrides[selectable].append(pick)
+
+    @classmethod
     def set_default_parameters(cls, selectable, parameters):
-        selectable.SelectableChoice.parameters.update(parameters)
+        if selectable not in selectable.SelectableChoice.parameters:
+            selectable.SelectableChoice.parameters[selectable] = {}
+        selectable.SelectableChoice.parameters[selectable].update(parameters)
 
     @classmethod
     def class2name(cls, c):
         return c.__name__
+
+    @classmethod
+    def is_multiple(cls, selectable):
+        return issubclass(selectable, Selectable.Multiple)
 
     import argparse
 
@@ -172,11 +255,26 @@ class SelectableManager(object):
 
         def __call__(self, parser, namespace, values, option_string=None):
             if option_string in self.__class__.mapping:
-                setattr(namespace, SelectableManager.class2name(self.__class__.mapping[option_string]), values)
+                mapped_selectable = self.__class__.mapping[option_string]
+
+                class_name = SelectableManager.class2name(mapped_selectable)
+
+                if SelectableManager.is_multiple(mapped_selectable):
+                    setattr(namespace, class_name,
+                            getattr(namespace, class_name, []) + [values]
+                            )
+                else:
+                    setattr(namespace, class_name, values)
 
                 values, the_kwargs = parse_class_name_with_kwargs(values)
 
-                SelectableManager.set(self.__class__.mapping[option_string], values)
+                if SelectableManager.is_multiple(mapped_selectable):
+                    SelectableManager.add(mapped_selectable, values)
+                else:
+                    SelectableManager.set(mapped_selectable, values)
 
                 if the_kwargs:
-                    SelectableManager.set_default_parameters(self.__class__.mapping[option_string], the_kwargs)
+                    SelectableManager.set_default_parameters(
+                        SelectableManager.get_choice_for_string(mapped_selectable, values),
+                        the_kwargs
+                    )
