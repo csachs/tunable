@@ -144,6 +144,8 @@ class SelectableManager(object):
                 if isinstance(result, list):
                     result = result[0]
             else:
+                if not isinstance(result, list):
+                    result = [result]
                 return [
                     cls.instantiate_selectable(one_selectable, args, kwargs)
                     for one_selectable in result
