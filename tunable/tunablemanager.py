@@ -149,7 +149,8 @@ class ConfigSerializer(Serializer):
         for k, v in sorted(tunables.items()):
             # noinspection PyStatementEffect
             v.value
-            result.append("# %s" % (v.documentation,))
+            if v.documentation:
+                result.append("# %s" % (v.documentation.replace('\n', '\n# '),))
             result.append("# type: %s" % (v.type_.__name__,))
             result.append("%s=%s" % (k, str(v.value),))
             result.append("")
