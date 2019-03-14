@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='tunable',
-    version='0.0.1.dev4',
+    version='0.0.1.dev5',
     description='tunable manager',
     long_description='A little library allowing to set parameters. Please see https://github.com/csachs/tunable for more information.',
     author='Christian C. Sachs',
