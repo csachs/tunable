@@ -10,7 +10,7 @@ setup(
     name='tunable',
     version='0.0.1.dev4',
     description='tunable manager',
-    long_description='A little library allowing to set parameters.',
+    long_description='A little library allowing to set parameters. Please see https://github.com/csachs/tunable for more information.',
     author='Christian C. Sachs',
     author_email='sachs.christian@gmail.com',
     url='https://github.com/csachs/tunable',
