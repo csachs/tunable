@@ -294,6 +294,8 @@ class SaveTunablesAction(argparse.Action):
 
         s = SERIALIZERS[ext]()
 
+        # TODO: call get_serialization()?
+
         print("Saving tunables to \"%s\" ..." % (file_name,))
 
         with open(file_name, 'wb+' if s.need_binary else 'w+') as fp:
@@ -436,7 +438,7 @@ class TunableManager(object):
         else:
             buf = StringIO()
 
-        serializer.serialize(buf, cls.get_semilong_dict())
+        serializer.serialize(buf, tunables=cls.get_semilong_dict(), representation=cls.get_representation())
 
         return buf.getvalue()
 
