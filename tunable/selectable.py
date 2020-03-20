@@ -5,8 +5,16 @@ documentation
 
 from .modulehelper import ModuleHelper
 
+class SelectableWatcher(type):
+    def __init__(cls, name, bases, clsdict):
+        super(SelectableWatcher, cls).__init__(name, bases, clsdict)
+        try:
+            SelectableManager.register_selectable_as_tunable(cls)
+        except NameError:  # the first try will fail bc SelectableManager gets defined down below first
+            pass
 
-class Selectable(object):
+
+class Selectable(object, metaclass=SelectableWatcher):
     autoload = True
 
     class SelectableChoice(object):
@@ -77,6 +85,10 @@ def parse_class_name_with_kwargs(value):
             the_kwargs[k] = v
 
     return value, the_kwargs
+
+
+def dict_to_kwarg_str(kwarg_dict):
+    return (','.join('%s=%r' % (k, v,) for k, v in kwarg_dict.items())).replace("'", '')
 
 
 class SelectableManager(object):
@@ -155,7 +167,7 @@ class SelectableManager(object):
     @classmethod
     def get(cls):
         return {
-            c: [cc for cc in get_all_subclasses(c) if Selectable.Virtual not in cc.__subclasses__()]
+            c: [cc for cc in get_all_subclasses(c) if Selectable.Virtual not in cc.__bases__]
             for c in cls.Selectable.__subclasses__()
         }
 
@@ -206,12 +218,60 @@ class SelectableManager(object):
         selectable.SelectableChoice.parameters[selectable].update(parameters)
 
     @classmethod
-    def class2name(cls, c):
-        return c.__name__
+    def class2name(cls, c, with_parameters=False):
+        if with_parameters is False:
+            return c.__name__
+        else:
+            if c in c.SelectableChoice.parameters:
+                parameter_str = dict_to_kwarg_str(c.SelectableChoice.parameters[c])
+            else:
+                parameter_str = ''
+
+            if parameter_str:
+                parameter_str = '(%s)' % (parameter_str,)
+            return c.__name__ + parameter_str
 
     @classmethod
     def is_multiple(cls, selectable):
         return issubclass(selectable, Selectable.Multiple)
+
+    @classmethod
+    def register_selectable_as_tunable(cls, class_):
+        available = cls.get()
+        if class_ in available:
+            from .tunable import Tunable, classproperty
+
+            def _get(cls_):
+                cls_.default = ''
+                cls_.set(cls_.default)
+                cls_.value = classproperty(_get)
+                return cls.class2name(cls.resolve_selectable(class_), with_parameters=True)
+
+            def _set_wrapper(cls_, value):
+                if value:
+                    mapped_selectable = cls_._corresponding_selectable
+
+                    values, the_kwargs = parse_class_name_with_kwargs(value)
+
+                    if SelectableManager.is_multiple(mapped_selectable):
+                        SelectableManager.add(mapped_selectable, values)
+                    else:
+                        SelectableManager.set(mapped_selectable, values)
+
+                    if the_kwargs:
+                        SelectableManager.set_default_parameters(
+                            SelectableManager.get_choice_for_string(mapped_selectable, values),
+                            the_kwargs
+                        )
+                # TODO: this will not be enough to auto-load modules
+                return cls_._real_set(value)
+
+            shadow_tunable = type(class_.__name__, (Tunable,), dict(default='', value=classproperty(_get)))
+            shadow_tunable.__module__ = class_.__module__
+            shadow_tunable._real_set = shadow_tunable.set
+            shadow_tunable.set = classmethod(_set_wrapper)
+            shadow_tunable._corresponding_selectable = class_
+            class_._selectable_shadow_tunable = shadow_tunable
 
     import argparse
 
