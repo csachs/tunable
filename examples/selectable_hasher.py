@@ -3,6 +3,9 @@ from tunable import Selectable
 
 
 class Hasher(Selectable):
+    def __init__(self, **kwargs):
+        print("got called with", kwargs)
+
     def hash(self, s):
         raise RuntimeError('Pure virtual function call')
 
