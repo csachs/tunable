@@ -108,7 +108,7 @@ class SelectableManager(object):
                 if len(default) > 1:
                     raise TypeError("Class %r with multiple defaults! %r" % (selectable_cls, default,))
                 if len(default) == 0:
-                    raise TypeError("Class %r without implementation!" % (default,))
+                    raise TypeError("Class %r without implementation!" % (selectable_cls,))
 
                 result = default[0]
                 selectable_cls.SelectableChoice.overrides[selectable_cls] = result
