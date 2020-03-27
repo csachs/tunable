@@ -283,9 +283,14 @@ class SelectableManager(object):
             name = cls.class2name(class_)
             token = parser.prefix_chars[0:1]*2 + name
             choices = [cls.class2name(c) for c in sorted(choice, key=lambda _c: cls.class2name(_c))]
-            default = defaults[class_] if class_ in defaults else choices[0]
-
-            parser.add_argument(token, type=str, choices=choices, default=default, action=cls.ArgparseAction)
+            default = defaults[class_] if class_ in defaults and defaults[class_] else None #choices[0]
+            # TODO: the default will be in the parser's parsed args, but will not be set via ArgparseAction
+            parser.add_argument(token,
+                                type=str,
+                                choices=choices,
+                                default=default,
+                                required=not bool(default),
+                                action=cls.ArgparseAction)
             cls.ArgparseAction.mapping[token] = class_
             cls.ArgparseAction.mapping[name] = class_
 
