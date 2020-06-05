@@ -77,6 +77,9 @@ def parse_class_name_with_kwargs(value):
         kv = kv[:-1]
 
         for kv_pair in kv.split(','):
+            if not kv_pair:
+                continue
+
             k, v = kv_pair.split('=')
             k, v = k.strip(), v.strip()
 
