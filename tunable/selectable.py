@@ -129,8 +129,8 @@ class SelectableManager(object):
             if hasattr(self, '__real_init_called'):
                 return
             else:
-                setattr(self, '__real_init_called', True)
                 selectable.__real_init__(self, *args, **kwargs)
+                setattr(self, '__real_init_called', True)
 
         selectable.__init__ = _init_proxy
 
