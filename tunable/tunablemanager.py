@@ -1,20 +1,22 @@
-from .tunable import Tunable, TunableError
-
 import argparse
 import hashlib
 import json
 import os
 import sys
 import xml.etree.ElementTree as ET
-
 from base64 import b64encode
+from io import BytesIO, StringIO
+
+from .tunable import Tunable, TunableError
 
 try:
     import pyasn1
-    from .schema import tunable_schema as schema, ASN1_SCHEMA_VERSION
-    from pyasn1.codec.der.encoder import encode as der_encode
     from pyasn1.codec.der.decoder import decode as der_decode
+    from pyasn1.codec.der.encoder import encode as der_encode
     from pyasn1.codec.native.encoder import encode as native_encode
+
+    from .schema import ASN1_SCHEMA_VERSION
+    from .schema import tunable_schema as schema
 except ImportError:
     pyasn1 = None
 
@@ -22,8 +24,6 @@ try:
     import yaml
 except ImportError:
     yaml = None
-
-from io import StringIO, BytesIO
 
 
 class Serializer(object):
@@ -35,13 +35,7 @@ class Serializer(object):
     _int = 'intValue'
     _float = 'floatValue'
 
-    type_to_name = {
-        bool: _bool,
-        bytes: _bytes,
-        str: _str,
-        int: _int,
-        float: _float
-    }
+    type_to_name = {bool: _bool, bytes: _bytes, str: _str, int: _int, float: _float}
 
     simple_types = {_int, _float, _str}
 
@@ -115,10 +109,7 @@ class XmlSerializer(Serializer):
 
 class JsonSerializer(Serializer):
     def serialize(self, fp, representation=None, **kwargs):
-        json.dump(
-            representation,
-            fp,
-            sort_keys=True, indent=4, separators=(',', ': '))
+        json.dump(representation, fp, sort_keys=True, indent=4, separators=(',', ': '))
 
     def deserialize(self, fp):
         return json.load(fp)
@@ -130,10 +121,7 @@ class YamlSerializer(Serializer):
             raise RuntimeError('yaml library missing!')
 
     def serialize(self, fp, representation=None, **kwargs):
-        yaml.dump(
-            representation,
-            fp,
-            default_flow_style=False)
+        yaml.dump(representation, fp, default_flow_style=False)
 
     def deserialize(self, fp):
         return yaml.load(fp)
@@ -141,10 +129,7 @@ class YamlSerializer(Serializer):
 
 class ConfigSerializer(Serializer):
     def serialize(self, fp, tunables=None, **kwargs):
-        result = [
-            "### Tunables ###",
-            ""
-        ]
+        result = ["### Tunables ###", ""]
 
         for k, v in sorted(tunables.items()):
             # noinspection PyStatementEffect
@@ -152,14 +137,24 @@ class ConfigSerializer(Serializer):
             if v.documentation:
                 result.append("# %s" % (v.documentation.replace('\n', '\n# '),))
             result.append("# type: %s" % (v.type_.__name__,))
-            result.append("%s=%s" % (k, str(v.value),))
+            result.append(
+                "%s=%s"
+                % (
+                    k,
+                    str(v.value),
+                )
+            )
             result.append("")
 
         fp.write("\n".join(result))
 
     def deserialize(self, fp):
         lines = fp.readlines()
-        lines = [line.strip() for line in lines if len(line.strip()) > 0 and line.strip()[0] != '#']
+        lines = [
+            line.strip()
+            for line in lines
+            if len(line.strip()) > 0 and line.strip()[0] != '#'
+        ]
 
         results = {}
 
@@ -186,7 +181,8 @@ class DerSerializer(Serializer):
         tl['version'] = ASN1_SCHEMA_VERSION
         tl['tunables'] = schema.TunableSequenceType()
 
-        # to make it independent of collation rules, sort it by its UTF-8 binary representation
+        # to make it independent of collation rules,
+        # sort it by its UTF-8 binary representation
         for name, tunable in sorted(tunables.items(), key=lambda ab: ab[0].encode()):
 
             value = tunable.value
@@ -217,7 +213,9 @@ class DerSerializer(Serializer):
         result = {}
 
         for tunable in decode_result['tunables']:
-            result[tunable['name']] = next(iter(native_encode(tunable['value']).values()))
+            result[tunable['name']] = next(
+                iter(native_encode(tunable['value']).values())
+            )
 
         return result
 
@@ -230,7 +228,7 @@ SERIALIZERS = {
     'yaml': YamlSerializer,
     'conf': ConfigSerializer,
     'der': DerSerializer,
-    'xml': XmlSerializer
+    'xml': XmlSerializer,
 }
 
 
@@ -299,9 +297,11 @@ class SaveTunablesAction(argparse.Action):
         print("Saving tunables to \"%s\" ..." % (file_name,))
 
         with open(file_name, 'wb+' if s.need_binary else 'w+') as fp:
-            s.serialize(fp,
-                        representation=TunableManager.get_representation(),
-                        tunables=TunableManager.get_semilong_dict())
+            s.serialize(
+                fp,
+                representation=TunableManager.get_representation(),
+                tunables=TunableManager.get_semilong_dict(),
+            )
 
         self.finish()
 
@@ -324,7 +324,7 @@ class TunableManager(object):
                 'show': (None, 'tunables-show'),
                 'set': ('t', 'tunable'),
                 'load': (None, 'tunables-load'),
-                'save': (None, 'tunables-save')
+                'save': (None, 'tunables-save'),
             }
 
         p = parser.prefix_chars[0:1]
@@ -337,7 +337,10 @@ class TunableManager(object):
             v = tuple(vv for vv in v if vv)
             if len(v) == 2:
                 vshort, vlong = v
-                v = (p + vshort, prefix + vlong,)
+                v = (
+                    p + vshort,
+                    prefix + vlong,
+                )
             else:
                 v = (prefix + v[0],)
 
@@ -395,7 +398,15 @@ class TunableManager(object):
         descent(Tunable)
         collection -= {Tunable}
 
-        return list(sorted(collection, key=lambda p: (p.__module__, p.__name__,)))
+        return list(
+            sorted(
+                collection,
+                key=lambda p: (
+                    p.__module__,
+                    p.__name__,
+                ),
+            )
+        )
 
     @classmethod
     def get_short_dict(cls):
@@ -403,11 +414,16 @@ class TunableManager(object):
 
     @classmethod
     def get_long_dict(cls):
-        return {class_.__module__ + '.' + class_.__name__: class_ for class_ in cls.get_classes()}
+        return {
+            class_.__module__ + '.' + class_.__name__: class_
+            for class_ in cls.get_classes()
+        }
 
     @staticmethod
     def _strip_main(kv):
-        return {(k[len('__main__.'):] if '__main__.' in k else k): v for k, v in kv.items()}
+        return {
+            (k[len('__main__.') :] if '__main__.' in k else k): v for k, v in kv.items()
+        }
 
     @classmethod
     def get_semilong_dict(cls):
@@ -438,7 +454,11 @@ class TunableManager(object):
         else:
             buf = StringIO()
 
-        serializer.serialize(buf, tunables=cls.get_semilong_dict(), representation=cls.get_representation())
+        serializer.serialize(
+            buf,
+            tunables=cls.get_semilong_dict(),
+            representation=cls.get_representation(),
+        )
 
         return buf.getvalue()
 
@@ -452,4 +472,3 @@ class TunableManager(object):
         hash_value = b64encode(hasher.digest()).decode()
 
         return "VERSION:%d:SHA256:%s" % (ASN1_SCHEMA_VERSION, hash_value)
-

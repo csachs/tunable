@@ -3,9 +3,9 @@
 documentation
 """
 
-import sys
 import argparse
 import importlib
+import sys
 import warnings
 from itertools import product
 
@@ -36,9 +36,14 @@ class ModuleHelper(object):
         module_ = None
 
         names = [
-            "%s%s" % (prefix, name,)
-            for name, prefix
-            in product([module_str, module_str.lower()], reversed(cls.prefixes))
+            "%s%s"
+            % (
+                prefix,
+                name,
+            )
+            for name, prefix in product(
+                [module_str, module_str.lower()], reversed(cls.prefixes)
+            )
         ]
 
         for name in names:
@@ -49,7 +54,9 @@ class ModuleHelper(object):
                 pass
 
         if module_ is None:
-            error_msg = "Attempted to load any of %r, but could not load any module." % (names,)
+            error_msg = (
+                "Attempted to load any of %r, but could not load any module." % (names,)
+            )
             if cls.error_mode == Exception:
                 raise ImportError(error_msg)
             elif cls.error_mode == Warning:
@@ -72,8 +79,12 @@ class ModuleHelper(object):
         parser._actions.clear()
         parser._option_string_actions.clear()
 
-        parser.add_argument(parser.prefix_chars[0:1] + short,
-                            parser.prefix_chars[0:1]*2 + long, type=str, action=cls.ImportAction)
+        parser.add_argument(
+            parser.prefix_chars[0:1] + short,
+            parser.prefix_chars[0:1] * 2 + long,
+            type=str,
+            action=cls.ImportAction,
+        )
         parser.parse_known_args(args=args)
 
         for action in actions:

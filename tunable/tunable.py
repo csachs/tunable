@@ -7,18 +7,28 @@ documentation
 def fancybool(value):
     if isinstance(value, type('')):
         value = value.lower()
-        if value == 'true' or value == 'yes' or value == 't' or value == 'y' or value == '1':
+        if (
+            value == 'true'
+            or value == 'yes'
+            or value == 't'
+            or value == 'y'
+            or value == '1'
+        ):
             return True
-        elif value == 'false' or value == 'no' or value == 'f' or value == 'n' or value == '0':
+        elif (
+            value == 'false'
+            or value == 'no'
+            or value == 'f'
+            or value == 'n'
+            or value == '0'
+        ):
             return False
         raise ValueError('Unsupported value %r passed, expected a bool.' % (value,))
     else:
         return bool(value)
 
 
-CONVERTERS = {
-    bool: fancybool
-}
+CONVERTERS = {bool: fancybool}
 
 
 class TunableError(RuntimeError):
@@ -27,7 +37,10 @@ class TunableError(RuntimeError):
 
 # noinspection PyPep8Naming
 class classproperty(object):
-    __slots__ = ('fget', '__doc__', )
+    __slots__ = (
+        'fget',
+        '__doc__',
+    )
 
     def __init__(self, fget=None, doc=None):
         self.fget = fget
@@ -42,7 +55,6 @@ class classproperty(object):
 
 
 class Tunable(object):
-
     @classproperty
     def value(cls):
         return cls.reset()
@@ -91,8 +103,11 @@ class Tunable(object):
             except ValueError as e:
                 raise TunableError(e)
 
-        if cls.range is not None and value not in cls.range \
-                and (type(cls.range) == range and value != cls.range.stop):
+        if (
+            cls.range is not None
+            and value not in cls.range
+            and (type(cls.range) == range and value != cls.range.stop)
+        ):
             raise TunableError('Tunable not in range', cls)
 
         if cls.test is not None and not cls.test(value):
@@ -105,6 +120,7 @@ class Tunable(object):
         if len(kwargs) == 0:
             return cls.value
         else:
+
             class IntermediateTunable(Tunable):
                 pass
 

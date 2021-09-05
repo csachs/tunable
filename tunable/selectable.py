@@ -5,13 +5,16 @@ documentation
 
 from .modulehelper import ModuleHelper
 
+
 class SelectableWatcher(type):
     def __init__(cls, name, bases, clsdict):
         super(SelectableWatcher, cls).__init__(name, bases, clsdict)
         try:
             SelectableManager.register_selectable_as_tunable(cls)
-        except NameError:  # the first try will fail bc SelectableManager gets defined down below first
+        except NameError:
             pass
+            # the first try will fail bc SelectableManager
+            # gets defined down below first
 
 
 class Selectable(object, metaclass=SelectableWatcher):
@@ -91,7 +94,16 @@ def parse_class_name_with_kwargs(value):
 
 
 def dict_to_kwarg_str(kwarg_dict):
-    return (','.join('%s=%r' % (k, v,) for k, v in kwarg_dict.items())).replace("'", '')
+    return (
+        ','.join(
+            '%s=%r'
+            % (
+                k,
+                v,
+            )
+            for k, v in kwarg_dict.items()
+        )
+    ).replace("'", '')
 
 
 class SelectableManager(object):
@@ -107,11 +119,23 @@ class SelectableManager(object):
             if Selectable not in selectable_cls.__bases__:
                 result = selectable_cls
             else:
-                default = [choice for choice in selectable_cls.__subclasses__() if issubclass(choice, selectable_cls.Default)]
+                default = [
+                    choice
+                    for choice in selectable_cls.__subclasses__()
+                    if issubclass(choice, selectable_cls.Default)
+                ]
                 if len(default) > 1:
-                    raise TypeError("Class %r with multiple defaults! %r" % (selectable_cls, default,))
+                    raise TypeError(
+                        "Class %r with multiple defaults! %r"
+                        % (
+                            selectable_cls,
+                            default,
+                        )
+                    )
                 if len(default) == 0:
-                    raise TypeError("Class %r without implementation!" % (selectable_cls,))
+                    raise TypeError(
+                        "Class %r without implementation!" % (selectable_cls,)
+                    )
 
                 result = default[0]
                 selectable_cls.SelectableChoice.overrides[selectable_cls] = result
@@ -170,7 +194,11 @@ class SelectableManager(object):
     @classmethod
     def get(cls):
         return {
-            c: [cc for cc in get_all_subclasses(c) if Selectable.Virtual not in cc.__bases__]
+            c: [
+                cc
+                for cc in get_all_subclasses(c)
+                if Selectable.Virtual not in cc.__bases__
+            ]
             for c in cls.Selectable.__subclasses__()
         }
 
@@ -185,7 +213,10 @@ class SelectableManager(object):
 
     @classmethod
     def defaults(cls):
-        return {c: [cc for cc in l if issubclass(cc, Selectable.Default)] for c, l in cls.get().items()}
+        return {
+            c: [cc for cc in l if issubclass(cc, Selectable.Default)]
+            for c, l in cls.get().items()
+        }
 
     @classmethod
     def _pick(cls, selectable, choice):
@@ -193,13 +224,16 @@ class SelectableManager(object):
             raise TypeError("Wrong arguments passed.")
 
         return next(
-            possible_choice for possible_choice in cls.get()[selectable]
+            possible_choice
+            for possible_choice in cls.get()[selectable]
             if possible_choice == choice or cls.class2name(possible_choice) == choice
         )
 
     @classmethod
     def set(cls, selectable, choice):
-        selectable.SelectableChoice.overrides[selectable] = cls._pick(selectable, choice)
+        selectable.SelectableChoice.overrides[selectable] = cls._pick(
+            selectable, choice
+        )
 
     @classmethod
     def add(cls, selectable, choice):
@@ -248,7 +282,9 @@ class SelectableManager(object):
                 cls_.default = ''
                 cls_.set(cls_.default)
                 cls_.value = classproperty(_get)
-                return cls.class2name(cls.resolve_selectable(class_), with_parameters=True)
+                return cls.class2name(
+                    cls.resolve_selectable(class_), with_parameters=True
+                )
 
             def _set_wrapper(cls_, value):
                 if value:
@@ -263,13 +299,17 @@ class SelectableManager(object):
 
                     if the_kwargs:
                         SelectableManager.set_default_parameters(
-                            SelectableManager.get_choice_for_string(mapped_selectable, values),
-                            the_kwargs
+                            SelectableManager.get_choice_for_string(
+                                mapped_selectable, values
+                            ),
+                            the_kwargs,
                         )
                 # TODO: this will not be enough to auto-load modules
                 return cls_._real_set(value)
 
-            shadow_tunable = type(class_.__name__, (Tunable,), dict(default='', value=classproperty(_get)))
+            shadow_tunable = type(
+                class_.__name__, (Tunable,), dict(default='', value=classproperty(_get))
+            )
             shadow_tunable.__module__ = class_.__module__
             shadow_tunable._real_set = shadow_tunable.set
             shadow_tunable.set = classmethod(_set_wrapper)
@@ -282,18 +322,28 @@ class SelectableManager(object):
     def register_argparser(cls, parser):
 
         defaults = cls.defaults()
-        for class_, choice in sorted(SelectableManager.get().items(), key=lambda _cc: cls.class2name(_cc[0])):
+        for class_, choice in sorted(
+            SelectableManager.get().items(), key=lambda _cc: cls.class2name(_cc[0])
+        ):
             name = cls.class2name(class_)
-            token = parser.prefix_chars[0:1]*2 + name
-            choices = [cls.class2name(c) for c in sorted(choice, key=lambda _c: cls.class2name(_c))]
-            default = defaults[class_] if class_ in defaults and defaults[class_] else None #choices[0]
-            # TODO: the default will be in the parser's parsed args, but will not be set via ArgparseAction
-            parser.add_argument(token,
-                                type=str,
-                                choices=choices,
-                                default=default,
-                                required=not bool(default),
-                                action=cls.ArgparseAction)
+            token = parser.prefix_chars[0:1] * 2 + name
+            choices = [
+                cls.class2name(c)
+                for c in sorted(choice, key=lambda _c: cls.class2name(_c))
+            ]
+            default = (
+                defaults[class_] if class_ in defaults and defaults[class_] else None
+            )  # choices[0]
+            # TODO: the default will be in the parser's parsed args, \
+            #  but will not be set via ArgparseAction
+            parser.add_argument(
+                token,
+                type=str,
+                choices=choices,
+                default=default,
+                required=not bool(default),
+                action=cls.ArgparseAction,
+            )
             cls.ArgparseAction.mapping[token] = class_
             cls.ArgparseAction.mapping[name] = class_
 
@@ -313,7 +363,10 @@ class SelectableManager(object):
                         except ImportError:
                             pass  # this time we're silent
                     choice = SelectableManager.get()[class_]
-                    action.choices = [cls.class2name(c) for c in sorted(choice, key=lambda _c: cls.class2name(_c))]
+                    action.choices = [
+                        cls.class2name(c)
+                        for c in sorted(choice, key=lambda _c: cls.class2name(_c))
+                    ]
 
             self._real_check_value(action, value)
 
@@ -330,9 +383,11 @@ class SelectableManager(object):
                 class_name = SelectableManager.class2name(mapped_selectable)
 
                 if SelectableManager.is_multiple(mapped_selectable):
-                    setattr(namespace, class_name,
-                            getattr(namespace, class_name, []) + [values]
-                            )
+                    setattr(
+                        namespace,
+                        class_name,
+                        getattr(namespace, class_name, []) + [values],
+                    )
                 else:
                     setattr(namespace, class_name, values)
 
@@ -345,6 +400,8 @@ class SelectableManager(object):
 
                 if the_kwargs:
                     SelectableManager.set_default_parameters(
-                        SelectableManager.get_choice_for_string(mapped_selectable, values),
-                        the_kwargs
+                        SelectableManager.get_choice_for_string(
+                            mapped_selectable, values
+                        ),
+                        the_kwargs,
                     )

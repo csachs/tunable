@@ -4,8 +4,10 @@ documentation
 """
 
 import argparse
-from tunable import SelectableManager, ModuleHelper
-from selectable_hasher import *
+
+from selectable_hasher import Hasher
+
+from tunable import ModuleHelper, SelectableManager
 
 
 def main():
@@ -22,9 +24,10 @@ def main():
 
     args = argparser.parse_args()
 
-    print("For our Hasher class, there are the following choices:",
-          [class_.__name__ for class_ in SelectableManager.get()[Hasher]]
-          )
+    print(
+        "For our Hasher class, there are the following choices:",
+        [class_.__name__ for class_ in SelectableManager.get()[Hasher]],
+    )
 
     print("A Hasher() now looks like this:", Hasher())
 

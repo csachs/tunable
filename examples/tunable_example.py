@@ -4,22 +4,28 @@ documentation
 """
 
 import argparse
+
 from tunable import Tunable, TunableManager
 
 
 class SomeTunableValue(Tunable):
     """An important tunable to modify bla bla foo."""
+
     default = "1.0"
     type_ = float
 
     # range = range(0, 1)
 
 
-class SomeOtherTunableValue(Tunable(documentation="My little value", default=8, type_=float)):
+class SomeOtherTunableValue(
+    Tunable(documentation="My little value", default=8, type_=float)
+):
     pass
 
 
-class YetAnotherTunableValue(Tunable(documentation="My little other value", default=8, type_=float)):
+class YetAnotherTunableValue(
+    Tunable(documentation="My little other value", default=8, type_=float)
+):
     pass
 
 

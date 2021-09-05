@@ -1,5 +1,6 @@
-from selectable_hasher import Hasher
 import hashlib
+
+from selectable_hasher import Hasher
 
 
 class MD5(Hasher):
