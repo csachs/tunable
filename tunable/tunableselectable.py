@@ -32,4 +32,5 @@ __all__ = [
     "Tunable",
     "TunableError",
     "TunableManager",
+    "TunableSelectable",
 ]

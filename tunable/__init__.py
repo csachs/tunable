@@ -10,9 +10,10 @@ from .tunableselectable import (
     Tunable,
     TunableError,
     TunableManager,
+    TunableSelectable,
 )
 
-__version__ = '0.0.1.dev7'
+__version__ = '0.0.1.dev8'
 
 __all__ = [
     "ModuleHelper",
@@ -21,4 +22,5 @@ __all__ = [
     "Tunable",
     "TunableError",
     "TunableManager",
+    "TunableSelectable",
 ]
